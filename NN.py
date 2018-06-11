@@ -7,6 +7,23 @@ class ActivationFunction:
         self.dfunc = dfunc
 
 
+def relu(x):
+    res = np.array(x)
+    for i in range(0, len(res)):
+        res[i] = max(res[i], 0.0)
+    return np.matrix(res)
+
+
+def reluDif(z_1):
+    res = np.array(z_1)
+    for i in range(0, len(z_1)):
+        if res[i] < 0.0:
+            res[i] = 0.0
+        else:
+            res[i] = 1.0
+    return np.matrix(res)
+
+
 sigmoid = lambda x: 1 / (1 + np.exp(-x))
 
 sigmoidAF = ActivationFunction(sigmoid,
@@ -15,6 +32,8 @@ sigmoidAF = ActivationFunction(sigmoid,
 
 tanh = ActivationFunction(np.tanh, lambda x: 4 / (np.power(np.exp(-x) + np.exp(x), 2)))
 
+relu_afunc = ActivationFunction(relu, reluDif)
+
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
@@ -22,27 +41,19 @@ def softmax(x):
 
 
 class NeuralNetwork():
-    def __init__(self, a, b, acfunc=sigmoidAF, lr=0.01):
-        if isinstance(a, NeuralNetwork):
-            self.input_layer = a.input_layer
-            self.hidden_layer = a.hidden_layer
-            self.output_layer = 10
-            self.weights = a.weights
-            self.activation_function = a.activation_function
-            self.accuracy = 0.0
-        else:
-            self.input_layer = a
-            self.hidden_layer = b
-            self.output_layer = 10
-            glorot_init = np.sqrt(6 / (1.0 * (self.hidden_layer + self.input_layer)))
-            W1 = np.matrix(
-                np.random.uniform(-1 * glorot_init, glorot_init, (self.hidden_layer, self.input_layer)))
-            W2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (self.output_layer, self.hidden_layer)))
-            b1 = np.transpose(
-                np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.hidden_layer)))
-            b2 = np.transpose(
-                np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.output_layer)))
-            self.weights = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
+    def __init__(self, b, lr=0.01, acfunc=sigmoidAF):
+        self.input_layer = 784
+        self.hidden_layer = b
+        self.output_layer = 10
+        glorot_init = np.sqrt(6 / (1.0 * (self.hidden_layer + self.input_layer)))
+        W1 = np.matrix(
+            np.random.uniform(-1 * glorot_init, glorot_init, (self.hidden_layer, self.input_layer)))
+        W2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (self.output_layer, self.hidden_layer)))
+        b1 = np.transpose(
+            np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.hidden_layer)))
+        b2 = np.transpose(
+            np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.output_layer)))
+        self.weights = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
         self.lr = lr
         self.accuracy = 0.0
         self.activation_function = acfunc
@@ -74,11 +85,14 @@ class NeuralNetwork():
 
     def checkValidation(self, validation_set):
         right_exmp = 0.0
+        loss = 0.0
         for x, y in validation_set:
             val_func = self.forward(x, y)
-            if ((np.argmax(val_func['h2'])) == int(y)):
+            loss += val_func['loss'].item()
+            if (np.argmax(val_func['h2'])) == int(y):
                 right_exmp = right_exmp + 1.0
-        return right_exmp
+        loss /= len(validation_set)
+        return loss
 
     def bprop(self, fprop_cache):
         w2 = self.weights['W2']
@@ -105,5 +119,6 @@ class NeuralNetwork():
                 # update weights
                 self.updateWeights(bp_gradients)
             right = self.checkValidation(validation_set)
-            self.acc = right / float(len(validation_set)) * 100.0
-            print(i, "success percentage:" + str(self.acc) + '%')
+            self.accuracy = right / float(len(validation_set)) * 100.0
+            print(i, "success percentage:" + str(self.accuracy) + '%')
+        return self.accuracy
