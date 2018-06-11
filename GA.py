@@ -4,40 +4,41 @@ from NN import NeuralNetwork
 
 
 def setup(init_pop):
+    population = []
     mndata = MNIST('./mnist_data')
     mndata.gz = True
     images, labels = mndata.load_training()
     test_images, test_labels = mndata.load_testing()
     all_data = list(zip(images, labels))
     valid_data = list(zip(test_images, test_labels))
-    '''create a population
-    loop:
-        eval fitness of nn and creating a new  population by
-        -pick a parent based on fitness score ,mapped to prop
-        -crossover
-        -mutation '''
     fitness = {}
-    for i in range(0, init_pop):
+    for j in range(0, init_pop):
         population.append(NeuralNetwork(100, 0.01))
-    # indices = list(range(len(all_data)))
-    for i in range(0, 50):
-        test_indices = list(range(len(valid_data)))
+    indices = list(range(len(all_data)))
+    for i in range(0, 20):
+        # test_indices = list(range(len(valid_data)))
         for net in population:
-            # validation_idx=np.random.choice(indices, size=784,replace=False)
-            test_idx = np.random.choice(test_indices, size=784, replace=False)
+            validation_idx = np.random.choice(indices, size=784, replace=False)
+            # test_idx = np.random.choice(test_indices, size=784, replace=False)
             # net.train(createSub(all_data,validation_idx), createSub(valid_data,test_idx), 10)
-            loss = net.checkValidation(create_sub(valid_data, test_idx))
+            loss = net.checkValidation(create_sub(all_data, validation_idx))
             fitness[loss] = net
-        sort_dict = sorted(fitness)
-
         children = []
-        while len(children) > init_pop - 5:
-            weight1 = fitness[sort_dict[0]].weights
-            sort_dict.pop(0)
-            weight2 = fitness[sort_dict[0]].weights
-            sort_dict.pop(0)
-            children.append(crossover(weight1, weight2))
-    print(fitness.keys())
+        chosen = roulette_wheel_selection(fitness, int(init_pop * .5))
+        raffle_num = list(range(len(chosen)))
+        mutation_rate = np.random.uniform(0, 1)
+        while len(children) < init_pop:
+            p, m = np.random.choice(raffle_num, size=2, replace=False)
+            mom = chosen[p]
+            pop = chosen[m]
+            mutate(mom, mutation_rate)
+            mutate(pop, mutation_rate)
+            children=children + crossover(mom.weights, pop.weights)
+        population = children
+        print(i)
+    for net in population:
+        net.checkValidation(valid_data)
+        print(net.accuracy)
 
 
 def crossover(weight1, weight2):
@@ -45,7 +46,7 @@ def crossover(weight1, weight2):
     child2 = NeuralNetwork(100)
     dict_res1 = {}
     dict_res2 = {}
-    for key, val in weight1:
+    for key, val in weight1.items():
         father = weight2[key]
         res1 = np.zeros((val.shape[0], val.shape[1]))
         res2 = np.zeros((val.shape[0], val.shape[1]))
@@ -62,7 +63,7 @@ def crossover(weight1, weight2):
         dict_res2[key] = res2
     child1.set_weights(dict_res1)
     child2.set_weights(dict_res2)
-    return (child1, child2)
+    return [child1, child2]
 
 
 def create_sub(data, indicte):
@@ -72,13 +73,14 @@ def create_sub(data, indicte):
     return res
 
 
-def roulette_wheel_selection(fitness_dict, size_select):
-    sum = np.sum(list(fitness_dict.key()))
-    p = np.random.uniform(0, sum)
+def roulette_wheel_selection(f_dict, size_select):
     chosen = []
+    fitness_dict = f_dict.copy()
     for inter in range(size_select):
+        sum = np.sum(list(fitness_dict.keys()))
+        p = np.random.uniform(0, sum)
         part_sum = 0.0
-        for key, val in fitness_dict:
+        for key,val in fitness_dict.items():
             if part_sum > p:
                 chosen.append(val)
                 del fitness_dict[key]
@@ -87,12 +89,15 @@ def roulette_wheel_selection(fitness_dict, size_select):
     return chosen
 
 
-def mutate(model, func):
+def mutate(model, mut_rate):
     new_weight = {}
-    for key, value in model.weights:
-        new_weight[key] = np.apply_along_axis(func, 1, np.array(value))
+    for key, value in model.weights.items():
+        if mut_rate > np.random.uniform(0, 1):
+            noise = np.random.normal(0, 1, (value.shape[0], value.shape[1]))
+            new_weight[key] = value + noise
+        else:
+            new_weight[key] = value
     model.set_weights(new_weight)
 
 
-population = []
-setup(20)
+setup(100)

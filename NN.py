@@ -41,7 +41,7 @@ def softmax(x):
 
 
 class NeuralNetwork():
-    def __init__(self, b, lr=0.01, acfunc=sigmoidAF):
+    def __init__(self, b, lr=0.01, acfunc=relu_afunc):
         self.input_layer = 784
         self.hidden_layer = b
         self.output_layer = 10
@@ -58,11 +58,6 @@ class NeuralNetwork():
         self.accuracy = 0.0
         self.activation_function = acfunc
 
-    def updateWeights(self, gradients):
-        self.weights = {'W1': (self.weights['W1'] - self.lr * gradients['W1']),
-                        'b1': (self.weights['b1'] - self.lr * gradients['b1'])
-            , 'W2': (self.weights['W2'] - self.lr * gradients['W2'])
-            , 'b2': (self.weights['b2'] - self.lr * gradients['b2'])}
 
     def set_weights(self, weights):
         self.weights = weights
@@ -92,33 +87,5 @@ class NeuralNetwork():
             if (np.argmax(val_func['h2'])) == int(y):
                 right_exmp = right_exmp + 1.0
         loss /= len(validation_set)
+        self.accuracy = right_exmp / float(len(validation_set)) * 100.0
         return loss
-
-    def bprop(self, fprop_cache):
-        w2 = self.weights['W2']
-        x = fprop_cache['x']
-        y = fprop_cache['y']
-        z1 = fprop_cache['z1']
-        h1 = fprop_cache['h1']
-        h2 = fprop_cache['h2']
-        dz2 = np.subtract(h2, y)
-        dW2 = np.dot(dz2, np.transpose(h1))  # dL/dz2 * dz2/dw2
-        db2 = dz2  # dL/dz2 * dz2/db2
-        dz1 = np.multiply(np.array(np.dot(np.transpose(w2), dz2)),
-                          np.array(self.activation_function.dfunc(z1)))  # dL/dz2 * dz2/dh1 * dh1/dz1
-        dW1 = np.dot(dz1, np.transpose(x))  # dL/dz2 * dz2/dh1 * dh1/dz1 * dz1/dw1
-        db1 = dz1  # dL/dz2 * dz2/dh1 * dh1/dz1 * dz1/db1
-        return {'b1': db1, 'W1': dW1, 'b2': db2, 'W2': dW2}
-
-    def train(self, training_set, validation_set, epochs):
-        for i in range(0, epochs):
-            np.random.shuffle(training_set)
-            for x, y in training_set:
-                functions = self.forward(x, y)  # forward
-                bp_gradients = self.bprop(functions)  # backpropagation
-                # update weights
-                self.updateWeights(bp_gradients)
-            right = self.checkValidation(validation_set)
-            self.accuracy = right / float(len(validation_set)) * 100.0
-            print(i, "success percentage:" + str(self.accuracy) + '%')
-        return self.accuracy
