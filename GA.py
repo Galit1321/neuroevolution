@@ -5,13 +5,16 @@ from NN import NeuralNetwork
 
 def setup(init_pop):
     population = []
+    raffle_num = list(range(int(init_pop * .5)))
     mndata = MNIST('./mnist_data')
     mndata.gz = True
-    images, labels = mndata.load_training()
-    test_images, test_labels = mndata.load_testing()
-    all_data = list(zip(images, labels))
-    valid_data = list(zip(test_images, test_labels))
-    fitness = {}
+    train_x, train_y = mndata.load_training()
+    train_x = np.array(train_x) / 255.0
+    test_x, test_labels = mndata.load_testing()
+    test_x=np.array(test_x)/255.0
+    all_data = list(zip(train_x, train_y))
+    valid_data = list(zip(test_x, test_labels))
+    fitness =[]
     for j in range(0, init_pop):
         population.append(NeuralNetwork(100, 0.01))
     indices = list(range(len(all_data)))
@@ -22,11 +25,10 @@ def setup(init_pop):
             # test_idx = np.random.choice(test_indices, size=784, replace=False)
             # net.train(createSub(all_data,validation_idx), createSub(valid_data,test_idx), 10)
             loss = net.checkValidation(create_sub(all_data, validation_idx))
-            fitness[loss] = net
+            fitness.append((loss , net))
         children = []
-        chosen = roulette_wheel_selection(fitness, int(init_pop * .5))
-        raffle_num = list(range(len(chosen)))
-        mutation_rate = np.random.uniform(0, 1)
+        chosen = roulette_wheel_selection(fitness, 50)
+        mutation_rate = np.random.uniform(0,1)
         while len(children) < init_pop:
             p, m = np.random.choice(raffle_num, size=2, replace=False)
             mom = chosen[p]
@@ -75,17 +77,23 @@ def create_sub(data, indicte):
 
 def roulette_wheel_selection(f_dict, size_select):
     chosen = []
-    fitness_dict = f_dict.copy()
-    for inter in range(size_select):
-        sum = np.sum(list(fitness_dict.keys()))
-        p = np.random.uniform(0, sum)
+    fitness_dict = {}
+    for elem in f_dict:
+        fitness_dict[elem[1]]=elem[0]
+    sdict=sorted(fitness_dict.items(), key=lambda x: x[1],reverse=False)
+    chosen=list(fitness_dict.keys())[:size_select]
+    '''while len(chosen)<size_select:
+        lst_keys=[key for key,val in fitness_dict]
+        sum = np.sum(lst_keys)
+        p = np.random.uniform(0, 1)
+        p=p*sum
         part_sum = 0.0
-        for key,val in fitness_dict.items():
+        for key,val in fitness_dict:
             if part_sum > p:
                 chosen.append(val)
-                del fitness_dict[key]
+                fitness_dict.remove((key,val))
                 break
-            part_sum += key
+            part_sum += key'''
     return chosen
 
 
