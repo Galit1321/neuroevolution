@@ -16,7 +16,7 @@ def setup(init_pop):
     valid_data = list(zip(test_x, test_labels))
     fitness =[]
     for j in range(0, init_pop):
-        population.append(NeuralNetwork(100, 0.01))
+        population.append(NeuralNetwork(120, 0.01))
     indices = list(range(len(all_data)))
     for i in range(0, 20):
         # test_indices = list(range(len(valid_data)))
@@ -24,8 +24,8 @@ def setup(init_pop):
             validation_idx = np.random.choice(indices, size=784, replace=False)
             # test_idx = np.random.choice(test_indices, size=784, replace=False)
             # net.train(createSub(all_data,validation_idx), createSub(valid_data,test_idx), 10)
-            loss = net.checkValidation(create_sub(all_data, validation_idx))
-            fitness.append((loss , net))
+            loss = net.checkValidation(create_sub(all_data, validation_idx),np.tanh)
+            fitness.append((loss, net))
         children = []
         chosen = roulette_wheel_selection(fitness, 50)
         mutation_rate = 0.005
@@ -44,8 +44,8 @@ def setup(init_pop):
 
 
 def crossover(weight1, weight2):
-    child1 = NeuralNetwork(100)
-    child2 = NeuralNetwork(100)
+    child1 = NeuralNetwork(120)
+    child2 = NeuralNetwork(120)
     dict_res1 = {}
     dict_res2 = {}
     for key, val in weight1.items():
@@ -81,26 +81,15 @@ def roulette_wheel_selection(f_dict, size_select):
     for elem in f_dict:
         fitness_dict[elem[1]]=elem[0]
     sdict=sorted(fitness_dict.items(), key=lambda x: x[1],reverse=False)
-    chosen=list(fitness_dict.keys())[:5]
-    while len(chosen)<size_select:
-        lst_keys=[key for key,val in fitness_dict]
-        sum = np.sum(lst_keys)
-        p = np.random.uniform(0, 1)
-        p=p*sum
-        part_sum = 0.0
-        for key,val in fitness_dict:
-            if part_sum > p:
-                chosen.append(val)
-                fitness_dict.remove((key,val))
-                break
-            part_sum += key
+    chosen=list(fitness_dict.keys())[:size_select]
+
     return chosen
 
 
 def mutate(model, mut_rate):
     new_weight = {}
     for key, value in model.weights.items():
-        if mut_rate > np.random.uniform(0, 1):
+        if mut_rate < np.random.uniform(0, 1):
             noise = np.random.normal(0, 0.004, (value.shape[0], value.shape[1]))
             new_weight[key] = value + noise
         else:
@@ -108,4 +97,4 @@ def mutate(model, mut_rate):
     model.set_weights(new_weight)
 
 
-setup(100)
+setup(50)

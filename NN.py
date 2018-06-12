@@ -41,51 +41,50 @@ def softmax(x):
 
 
 class NeuralNetwork():
-    def __init__(self, b, lr=0.01, acfunc=relu_afunc):
+    def __init__(self, b, lr=0.01):
         self.input_layer = 784
         self.hidden_layer = b
         self.output_layer = 10
         glorot_init = np.sqrt(6 / (1.0 * (self.hidden_layer + self.input_layer)))
-        W1 = np.matrix(
-            np.random.uniform(-1 * glorot_init, glorot_init, (self.hidden_layer, self.input_layer)))
-        W2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (self.output_layer, self.hidden_layer)))
-        b1 = np.transpose(
-            np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.hidden_layer)))
-        b2 = np.transpose(
-            np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.output_layer)))
-        self.weights = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2}
+        W1 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (self.hidden_layer, self.input_layer)))
+        W2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (self.hidden_layer, self.hidden_layer)))
+        W3 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (self.output_layer, self.hidden_layer)))
+        b1 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.hidden_layer)))
+        b2 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.hidden_layer)))
+        b3 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.output_layer)))
+        self.weights = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2, 'b3': b3, 'W3': W3}
         self.lr = lr
         self.accuracy = 0.0
-        self.activation_function = acfunc
 
 
     def set_weights(self, weights):
         self.weights = weights
 
-    def forward(self, x, y):
+    def forward(self, x, y,activation_fun):
         # Follows procedure given in notes
-        W1, b1, W2, b2 = [self.weights[key] for key in ('W1', 'b1', 'W2', 'b2')]
+        W1, b1, W2, b2, W3, b3 = [self.weights[key] for key in ('W1', 'b1', 'W2', 'b2', 'W3', 'b3')]
         x = np.transpose(np.matrix(x))
         z1 = np.add(np.dot(W1, x), b1)
-        h1 = self.activation_function.func(z1)  # activation function
+        h1 = activation_fun(z1)  # activation function
         z2 = np.add(np.dot(W2, h1), b2)
-        h2 = softmax(z2)
-        loss = -(np.log(h2[int(y)]))
+        h2 = activation_fun(z2)
+        z3 = np.add(np.dot(W3, h2), b3)
+        h3 = softmax(z3)
+        loss = -(np.log(h3[int(y)]))
         y_vec = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         y_vec[int(y)] = 1
         y_vec = np.transpose(np.matrix(y_vec))
-        ret = {'x': x, 'y': y_vec, 'z1': z1, 'h1': h1, 'z2': z2, 'h2': h2, 'loss': loss}
-
+        ret = {'x': x, 'y': y_vec, 'z1': z1, 'h1': h1, 'z2': z2, 'h2': h2, 'z3': z3, 'h3': h3, 'loss': loss}
         return ret
 
-    def checkValidation(self, validation_set):
-        right_exmp = 0.0
+    def checkValidation(self, validation_set, ac_fun):
+        right_exmp = 0
         loss = 0.0
         for x, y in validation_set:
-            val_func = self.forward(x, y)
+            val_func = self.forward(x, y, ac_fun)
             loss += val_func['loss'].item()
-            if (np.argmax(val_func['h2'])) == int(y):
-                right_exmp = right_exmp + 1.0
-        loss /= len(validation_set)
+            if (np.argmax(val_func['h3'])) == int(y):
+                right_exmp = right_exmp + 1
         self.accuracy = right_exmp / float(len(validation_set)) * 100.0
         return loss
+

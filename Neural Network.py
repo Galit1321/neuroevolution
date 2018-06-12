@@ -55,14 +55,12 @@ def fprop(x, y, params, activation_fun):
     y_vec[int(y)] = 1
     y_vec = np.transpose(np.matrix(y_vec))
     ret = {'x': x, 'y': y_vec, 'z1': z1, 'h1': h1, 'z2': z2, 'h2': h2, 'z3': z3, 'h3': h3, 'loss': loss}
-    for key in params:
-        ret[key] = params[key]
     return ret
 
 
-def bprop(fprop_cache, diFunc):
-    w2 = fprop_cache['W2']
-    w3 = fprop_cache['W3']
+def bprop(fprop_cache, diFunc,weights):
+    w2 = weights['W2']
+    w3 = weights['W3']
     x = fprop_cache['x']
     y = fprop_cache['y']
     z1 = fprop_cache['z1']
@@ -70,7 +68,6 @@ def bprop(fprop_cache, diFunc):
     h1 = fprop_cache['h1']
     h2 = fprop_cache['h2']
     h3 = fprop_cache['h3']
-
     dz3 = np.subtract(h3, y)
     dW3 = np.dot(dz3, np.transpose(h2))  # dL/dz3 * dz3/dw3
     db3 = dz3  # dL/dz3 * dz3/db3
@@ -84,12 +81,11 @@ def bprop(fprop_cache, diFunc):
     return {'b1': db1, 'W1': dW1, 'b2': db2, 'W2': dW2, 'b3': db3, 'W3': dW3}
 
 
-hidden_layer = 100
+hidden_layer = 120
 input_size = 28 * 28
 output_layer = 10
 lr = 0.01
 epochs = 30
-
 mndata = MNIST('./mnist_data')
 mndata.gz = True
 train_x, train_y = mndata.load_training()
@@ -113,8 +109,8 @@ for i in range(0, epochs):
     np.random.shuffle(training_set)
     print("before train")
     for x, y in training_set:
-        functions = fprop(x, y, weights, relu)  # forward
-        bp_gradients = bprop(functions, reluDif)  # backpropagation
+        functions = fprop(x, y, weights, np.tanh)  # forward
+        bp_gradients = bprop(functions, difftanh,weights)  # backpropagation
         # update weights
         weights = {'W1': (weights['W1'] - lr * bp_gradients['W1']),
                    'b1': (weights['b1'] - lr * bp_gradients['b1']),
@@ -123,7 +119,7 @@ for i in range(0, epochs):
                    'W3': (weights['W3'] - lr * bp_gradients['W3']),
                    'b3': (weights['b3'] - lr * bp_gradients['b3'])}
     print("after train")
-    right = checkValidation(weights, validation_set, sigmoid)
+    right = checkValidation(weights, validation_set, np.tanh)
     print(i, "success percentage:" + str((right / float(len(validation_set)) * 100)) + '%')
 
 test_x = test_x
