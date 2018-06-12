@@ -43,14 +43,14 @@ def softmax(x):
 class NeuralNetwork():
     def __init__(self, b, lr=0.01):
         self.input_layer = 784
-        self.hidden_layer = b
+        self.hidden_layer = 128
         self.output_layer = 10
         glorot_init = np.sqrt(6 / (1.0 * (self.hidden_layer + self.input_layer)))
         W1 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (self.hidden_layer, self.input_layer)))
-        W2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (self.hidden_layer, self.hidden_layer)))
-        W3 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (self.output_layer, self.hidden_layer)))
+        W2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (64, 128)))
+        W3 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (self.output_layer, 64)))
         b1 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.hidden_layer)))
-        b2 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.hidden_layer)))
+        b2 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, 64)))
         b3 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.output_layer)))
         self.weights = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2, 'b3': b3, 'W3': W3}
         self.lr = lr
