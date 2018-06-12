@@ -28,7 +28,7 @@ def setup(init_pop):
             fitness.append((loss , net))
         children = []
         chosen = roulette_wheel_selection(fitness, 50)
-        mutation_rate = np.random.uniform(0,1)
+        mutation_rate = 0.005
         while len(children) < init_pop:
             p, m = np.random.choice(raffle_num, size=2, replace=False)
             mom = chosen[p]
@@ -81,8 +81,8 @@ def roulette_wheel_selection(f_dict, size_select):
     for elem in f_dict:
         fitness_dict[elem[1]]=elem[0]
     sdict=sorted(fitness_dict.items(), key=lambda x: x[1],reverse=False)
-    chosen=list(fitness_dict.keys())[:size_select]
-    '''while len(chosen)<size_select:
+    chosen=list(fitness_dict.keys())[:5]
+    while len(chosen)<size_select:
         lst_keys=[key for key,val in fitness_dict]
         sum = np.sum(lst_keys)
         p = np.random.uniform(0, 1)
@@ -93,7 +93,7 @@ def roulette_wheel_selection(f_dict, size_select):
                 chosen.append(val)
                 fitness_dict.remove((key,val))
                 break
-            part_sum += key'''
+            part_sum += key
     return chosen
 
 
@@ -101,7 +101,7 @@ def mutate(model, mut_rate):
     new_weight = {}
     for key, value in model.weights.items():
         if mut_rate > np.random.uniform(0, 1):
-            noise = np.random.normal(0, 1, (value.shape[0], value.shape[1]))
+            noise = np.random.normal(0, 0.004, (value.shape[0], value.shape[1]))
             new_weight[key] = value + noise
         else:
             new_weight[key] = value
