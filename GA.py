@@ -38,10 +38,12 @@ def check_validation(weights, validation_set, ac_fun):
 def create_crom(hidden_layer, input_layer=784, output_layer=10):
     glorot_init = np.sqrt(6 / (1.0 * (hidden_layer + input_layer)))
     W1 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (hidden_layer, input_layer)))
-    W2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (64, 128)))
-    W3 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (output_layer, 64)))
     b1 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, hidden_layer)))
+    glorot_init = np.sqrt(6 / (1.0 * (64 + 128)))
+    W2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (64, 128)))
     b2 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, 64)))
+    glorot_init = np.sqrt(6 / (1.0 * (64 +10)))
+    W3 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (output_layer, 64)))
     b3 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, output_layer)))
     weights = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2, 'b3': b3, 'W3': W3}
     return weights
@@ -58,7 +60,6 @@ def setup(init_pop):
     all_data = list(zip(train_x, train_y))
     valid_data = list(zip(test_x, test_labels))
     fitness = []
-    children = []
     for j in range(0, init_pop):
         population.append(create_crom(128))
     indices = list(range(len(all_data)))
@@ -66,14 +67,20 @@ def setup(init_pop):
         fitness.clear()
         validation_idx = np.random.choice(indices, size=1000, replace=False)
         sub_set = np.array(all_data)[validation_idx]
+        total_acc=0.0
+        totloss=0.0
         for crom in population:
             loss,acc = check_validation(crom, sub_set, np.tanh)
-
-            print(i,"loss:",loss,"acc",acc)
+            total_acc+=acc
+            totloss+=loss
+            #print(i,"loss:",loss,"acc",acc)
             fitness.append((loss, crom))
+        total_acc/=float(len(population))
+        totloss/=float(len(population))
+        print(i,"loss:",totloss,"acc",total_acc)
         fitness = sorted(fitness, key=lambda tup: tup[0])
         chosen = selection(fitness, int(init_pop * .5))
-        mutation_rate = 0.05
+        mutation_rate = 0.01
         elitism = 5
         children=[mutate(elem[1], mutation_rate) for elem in fitness[:elitism]]
         for elem in chosen:
@@ -115,7 +122,6 @@ def selection(tuple_lst, desired_length):
             chosen1.append(index)
         i -= 1
     mates = []
-    # pair mates to get desired amount of breeds
     while len(mates) < desired_length:
         p, m = np.random.choice(chosen1, size=2, replace=False)
         if m!=p:
@@ -134,4 +140,4 @@ def mutate(weights, mut_rate):
     return new_weight
 
 
-setup(100)
+setup(50)
