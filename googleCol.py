@@ -1,17 +1,14 @@
+
+from keras.datasets import mnist
+from keras import backend as K
+
 import numpy as np
-from mnist import MNIST
+
 
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum()
-
-
-def relu(x):
-    res = np.array(x)
-    for i in range(0, len(res)):
-        res[i] = max(res[i], 0.0)
-    return np.matrix(res)
 
 
 def forward(weights, x, y, activation_fun):
@@ -58,26 +55,48 @@ def create_crom(hidden_layer, input_layer=784, output_layer=10):
 
 def setup(init_pop):
     population = []
-    mndata = MNIST('./mnist_data')
-    mndata.gz = True
-    train_x, train_y = mndata.load_training()
-    train_x = np.array(train_x) / 255.0
-    test_x, test_labels = mndata.load_testing()
-    test_x = np.array(test_x) / 255.0
-    all_data = list(zip(train_x, train_y))
-    valid_data = list(zip(test_x, test_labels))
+
+    img_rows, img_cols = 28, 28
+
+    # the data, split between train and test sets
+    (x_train, y_train), (x_test, test_labels) = mnist.load_data()
+
+    if K.image_data_format() == 'channels_first':
+        x_train = x_train.reshape(x_train.shape[0], 784)
+        x_test = x_test.reshape(x_test.shape[0], 784)
+        input_shape = (1, img_rows, img_cols)
+    else:
+        x_train = x_train.reshape(x_train.shape[0], 784)
+        x_test = x_test.reshape(x_test.shape[0],784)
+        input_shape = (img_rows, img_cols, 1)
+
+    x_train = x_train.astype('float32')
+    x_test = x_test.astype('float32')
+    x_train /= 255
+    x_test /= 255
+    print('x_train shape:', x_train.shape)
+    print(x_train.shape[0], 'train samples')
+    print(x_test.shape[0], 'test samples')
+    # mndata = MNIST('./mnist_data')
+    # mndata.gz = True
+    # train_x, train_y = mndata.load_training()
+    # train_x = np.array(train_x) / 255.0
+    # test_x, test_labels = mndata.load_testing()
+    # test_x = np.array(test_x) / 255.0
+    all_data = list(zip(x_train, y_train))
+    valid_data = list(zip(x_test, test_labels))
     fitness = []
     for j in range(0, init_pop):
         population.append(create_crom(128))
     indices = list(range(len(all_data)))
     for i in range(0, 5000):
         fitness.clear()
-        validation_idx = np.random.choice(indices, size=100, replace=False)
+        validation_idx = np.random.choice(indices, size=1000, replace=False)
         sub_set = np.array(all_data)[validation_idx]
         total_acc = 0.0
         totloss = 0.0
         for crom in population:
-            loss, acc = check_validation(crom, sub_set, relu)
+            loss, acc = check_validation(crom, sub_set, np.tanh)
             total_acc += acc
             totloss += loss
             fitness.append((loss, crom))
@@ -86,7 +105,7 @@ def setup(init_pop):
         print(i, "loss:", totloss, "acc", total_acc)
         fitness = sorted(fitness, key=lambda tup: tup[0])
         chosen = selection(fitness, int(init_pop * .5))
-        mutation_rate = 0.05
+        mutation_rate = 0.01
         elitism = int(init_pop * .1)
         children = [mutate(elem[1], mutation_rate) for elem in fitness[:elitism]]
         for elem in chosen:
@@ -96,7 +115,7 @@ def setup(init_pop):
             children = children + crossover(mutate(mom, mutation_rate), mutate(pop, mutation_rate))
         population = children
     for croms in population:
-        acc = check_validation(croms, valid_data, relu)[1]
+        acc = check_validation(croms, valid_data, np.tanh)[1]
         print(acc)
 
 
@@ -139,7 +158,7 @@ def mutate(weights, mut_rate):
     new_weight = {}
     for key, value in weights.items():
         if mut_rate > np.random.random():
-            noise = np.random.normal(scale=0.089, size=(value.shape[0], value.shape[1]))
+            noise = np.random.normal(scale=0.01, size=(value.shape[0], value.shape[1]))
             new_weight[key] = value + noise
         else:
             new_weight[key] = value
@@ -147,3 +166,4 @@ def mutate(weights, mut_rate):
 
 
 setup(50)
+

@@ -63,3 +63,34 @@ class NeuralNetwork():
         self.accuracy = right_exmp / float(len(validation_set)) * 100.0
         return loss
 
+
+def forward(weights, x, y, activation_fun):
+    # Follows procedure given in notes
+    w1, b1, w2, b2, w3, b3 = [weights[key] for key in ('W1', 'b1', 'W2', 'b2', 'W3', 'b3')]
+    x = np.transpose(np.matrix(x))
+    z1 = np.add(np.dot(w1, x), b1)
+    h1 = activation_fun(z1)  # activation function
+    z2 = np.add(np.dot(w2, h1), b2)
+    h2 = activation_fun(z2)
+    z3 = np.add(np.dot(w3, h2), b3)
+    h3 = np.array([softmax(z) for z in z3])
+    loss = -(np.log(h3[int(y)]))
+    ret = {'h3': h3, 'loss': loss}
+    return ret
+
+
+
+
+def check_validation(train_x,train_y,weights,ac_fun, minibatch_size=100):
+    right_exmp = 0
+    loss = 0.0
+    for i in range(0, train_x.shape[0],  minibatch_size):
+        X_train_mini = train_x[i:i + minibatch_size]
+        y_train_mini = train_y[i:i + minibatch_size]
+        val_func = forward(weights, X_train_mini , y_train_mini, ac_fun)
+        loss += val_func['loss'].item()
+        if (np.argmax(val_func['h3'])) == int(y):
+            right_exmp = right_exmp + 1
+    accuracy = right_exmp / float(len(train_x)) * 100.0
+    loss/=len(train_x)
+    return loss, accuracy
