@@ -1,6 +1,50 @@
 import numpy as np
 from mnist import MNIST
-from NN import NeuralNetwork
+
+
+def softmax(x):
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
+
+
+def forward(weights, x, y, activation_fun):
+    # Follows procedure given in notes
+    w1, b1, w2, b2, w3, b3 = [weights[key] for key in ('W1', 'b1', 'W2', 'b2', 'W3', 'b3')]
+    x = np.transpose(np.matrix(x))
+    z1 = np.add(np.dot(w1, x), b1)
+    h1 = activation_fun(z1)  # activation function
+    z2 = np.add(np.dot(w2, h1), b2)
+    h2 = activation_fun(z2)
+    z3 = np.add(np.dot(w3, h2), b3)
+    h3 = softmax(z3)
+    loss = -(np.log(h3[int(y)]))
+    ret = {'h3': h3, 'loss': loss}
+    return ret
+
+
+def check_validation(weights, validation_set, ac_fun):
+    right_exmp = 0
+    loss = 0.0
+    for x, y in validation_set:
+        val_func = forward(weights, x, y, ac_fun)
+        loss += val_func['loss'].item()
+        if (np.argmax(val_func['h3'])) == int(y):
+            right_exmp = right_exmp + 1
+    accuracy = right_exmp / float(len(validation_set)) * 100.0
+    loss/=len(validation_set)
+    return loss, accuracy
+
+
+def create_crom(hidden_layer, input_layer=784, output_layer=10):
+    glorot_init = np.sqrt(6 / (1.0 * (hidden_layer + input_layer)))
+    W1 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (hidden_layer, input_layer)))
+    W2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (64, 128)))
+    W3 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (output_layer, 64)))
+    b1 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, hidden_layer)))
+    b2 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, 64)))
+    b3 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, output_layer)))
+    weights = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2, 'b3': b3, 'W3': W3}
+    return weights
 
 
 def setup(init_pop):
@@ -14,41 +58,36 @@ def setup(init_pop):
     all_data = list(zip(train_x, train_y))
     valid_data = list(zip(test_x, test_labels))
     fitness = []
+    children = []
     for j in range(0, init_pop):
-        population.append(NeuralNetwork(120, 0.01))
+        population.append(create_crom(128))
     indices = list(range(len(all_data)))
-    for i in range(0, 30):
-        print(len(population))
-        # test_indices = list(range(len(valid_data)))
-        for net in population:
-            validation_idx = np.random.choice(indices, size=1000, replace=False)
-            # test_idx = np.random.choice(test_indices, size=784, replace=False)
-            # net.train(createSub(all_data,validation_idx), createSub(valid_data,test_idx), 10)
-            loss = net.checkValidation(create_sub(all_data, validation_idx), np.tanh)
-            fitness.append((loss, net))
-        population.clear()
+    for i in range(0, 300):
         fitness.clear()
-        children = []
+        validation_idx = np.random.choice(indices, size=1000, replace=False)
+        sub_set = np.array(all_data)[validation_idx]
+        for crom in population:
+            loss,acc = check_validation(crom, sub_set, np.tanh)
+
+            print(i,"loss:",loss,"acc",acc)
+            fitness.append((loss, crom))
+        fitness = sorted(fitness, key=lambda tup: tup[0])
         chosen = selection(fitness, int(init_pop * .5))
-        mutation_rate = 0.1
+        mutation_rate = 0.05
+        elitism = 5
+        children=[mutate(elem[1], mutation_rate) for elem in fitness[:elitism]]
         for elem in chosen:
             if len(children) == init_pop:
                 break
             mom, pop = elem
-            mutate(mom, mutation_rate)
-            mutate(pop, mutation_rate)
-            children = children + crossover(mom.weights, pop.weights)
-        chosen.clear()
+            children = children + crossover(mutate(mom, mutation_rate), mutate(pop, mutation_rate))
         population = children
-        print(i)
-    for net in population:
-        net.checkValidation(valid_data, np.tanh)
-        print(net.accuracy)
+    for croms in population:
+        acc = check_validation(croms, valid_data, np.tanh)[1]
+        print(acc)
 
 
 def crossover(weight1, weight2):
-    child1 = NeuralNetwork(120)
-    child2 = NeuralNetwork(120)
     dict_res1 = {}
     dict_res2 = {}
     for key, val in weight1.items():
@@ -65,55 +104,34 @@ def crossover(weight1, weight2):
                 res1[i] = father[i]
         dict_res1[key] = res1
         dict_res2[key] = res2
-    child1.set_weights(dict_res1)
-    child2.set_weights(dict_res2)
-    return [child1, child2]
-
-
-def create_sub(data, indicte):
-    res = []
-    for num in indicte:
-        res.append(data[num])
-    return res
+    return [dict_res1, dict_res2]
 
 
 def selection(tuple_lst, desired_length):
-    # init "lotto cards"
-    chosen = []
-    fitness_dict = {}
+    chosen1 = []
     i = desired_length
-    for elem in tuple_lst:
-        key = elem[1]
-        fitness_dict[key] = elem[0]
+    for index in range(0,len(tuple_lst)):
         for j in range(0, i):
-            chosen.append(key)
+            chosen1.append(index)
         i -= 1
-    if desired_length % 2 != 0:
-        desired_length += 1
-
-    # desired_length = int(desired_length / 2)
-    # init mates list
     mates = []
     # pair mates to get desired amount of breeds
     while len(mates) < desired_length:
-        p, m = np.random.choice(chosen, size=2, replace=False)
-        # only create match if both sides are different net
-        if p != m:
-            mates.append((m, p))
+        p, m = np.random.choice(chosen1, size=2, replace=False)
+        if m!=p:
+            mates.append((tuple_lst[m][1], tuple_lst[p][1]))
     return mates
 
 
-
-
-def mutate(model, mut_rate):
+def mutate(weights, mut_rate):
     new_weight = {}
-    for key, value in model.weights.items():
+    for key, value in weights.items():
         if mut_rate > np.random.random():
             noise = np.random.normal(scale=0.1, size=(value.shape[0], value.shape[1]))
             new_weight[key] = value + noise
         else:
             new_weight[key] = value
-    model.set_weights(new_weight)
+    return new_weight
 
 
-setup(50)
+setup(100)
