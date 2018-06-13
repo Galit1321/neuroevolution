@@ -60,6 +60,8 @@ def setup(init_pop):
     population = []
     mndata = MNIST('./mnist_data')
     mndata.gz = True
+    elitism = int(init_pop * .2)
+    mutation_rate = 0.01
     train_x, train_y = mndata.load_training()
     train_x = np.array(train_x) / 255.0
     test_x, test_labels = mndata.load_testing()
@@ -70,14 +72,15 @@ def setup(init_pop):
     for j in range(0, init_pop):
         population.append(create_crom(128))
     indices = list(range(len(all_data)))
-    for i in range(0, 5000):
+    print(init_pop,"mr=0.01  scale=0.081",12000,100,"eli=20%")
+    for i in range(0, 12000):
         fitness.clear()
         validation_idx = np.random.choice(indices, size=100, replace=False)
         sub_set = np.array(all_data)[validation_idx]
         total_acc = 0.0
         totloss = 0.0
         for crom in population:
-            loss, acc = check_validation(crom, sub_set, relu)
+            loss, acc = check_validation(crom, sub_set, np.tanh)
             total_acc += acc
             totloss += loss
             fitness.append((loss, crom))
@@ -86,8 +89,6 @@ def setup(init_pop):
         print(i, "loss:", totloss, "acc", total_acc)
         fitness = sorted(fitness, key=lambda tup: tup[0])
         chosen = selection(fitness, int(init_pop * .5))
-        mutation_rate = 0.05
-        elitism = int(init_pop * .1)
         children = [mutate(elem[1], mutation_rate) for elem in fitness[:elitism]]
         for elem in chosen:
             if len(children) == init_pop:
@@ -96,18 +97,18 @@ def setup(init_pop):
             children = children + crossover(mutate(mom, mutation_rate), mutate(pop, mutation_rate))
         population = children
     for croms in population:
-        acc = check_validation(croms, valid_data, relu)[1]
+        acc = check_validation(croms, valid_data, np.tanh)[1]
         print(acc)
 
 
 def crossover(weight1, weight2):
     dict_res1 = {}
     dict_res2 = {}
+    prob = np.random.random()
     for key, val in weight1.items():
         father = weight2[key]
         res1 = np.zeros((val.shape[0], val.shape[1]))
         res2 = np.zeros((val.shape[0], val.shape[1]))
-        prob = np.random.random()
         for i in range(0, val.shape[0]):
             if prob > np.random.random():
                 res1[i] = val[i]
@@ -139,11 +140,11 @@ def mutate(weights, mut_rate):
     new_weight = {}
     for key, value in weights.items():
         if mut_rate > np.random.random():
-            noise = np.random.normal(scale=0.089, size=(value.shape[0], value.shape[1]))
+            noise = np.random.normal(scale=0.081, size=(value.shape[0], value.shape[1]))
             new_weight[key] = value + noise
         else:
             new_weight[key] = value
     return new_weight
 
 
-setup(50)
+setup(100)
