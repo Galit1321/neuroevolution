@@ -20,7 +20,7 @@ def forward(weights, x, y, activation_fun):
     z2 = np.add(np.dot(w2, h1), b2)
     h2 = activation_fun(z2)
     z3 = np.add(np.dot(w3, h2), b3)
-    h3 = softmax(z3)
+    h3 = np.array([softmax(z) for z in np.array(z3)])
     loss = -(np.log(h3[int(y)]))
     ret = {'h3': h3, 'loss': loss}
     return ret
@@ -66,28 +66,28 @@ def setup(init_pop):
     train_x = np.array(train_x) / 255.0
     test_x, test_labels = mndata.load_testing()
     test_x = np.array(test_x) / 255.0
-    all_data = list(zip(train_x, train_y))
-    valid_data = list(zip(test_x, test_labels))
+    #all_data = list(zip(train_x, train_y))
+    #valid_data = list(zip(test_x, test_labels))
     fitness = []
     for j in range(0, init_pop):
         population.append(create_crom(128))
-    indices = list(range(len(all_data)))
+    indices = list(range(len(train_x)))
     print(init_pop, "mr=0.01  scale=0.081", 12000, 100, "eli=20%")
     for i in range(0, 20):
         fitness.clear()
         validation_idx = np.random.choice(indices, size=100, replace=False)
-        sub_set = np.array(all_data)[validation_idx]
+        sub_set = np.array(train_x)[validation_idx]
+        sub_set_y=np.array(train_y)[validation_idx]
+        total_acc = 0.0
         totloss = 0.0
-        best_acc=0.0
-        best={}
         for crom in population:
-            loss, acc = check_validation(crom, sub_set, np.tanh)
-            if best_acc<acc:
-                best=crom
-                best_acc=acc
+            loss, acc = check_validation(sub_set,sub_set_y,crom, relu)
+            total_acc += acc
+            totloss += loss
             fitness.append((loss, crom))
+        total_acc /= float(len(population))
         totloss /= float(len(population))
-        print(i, " avg loss:", totloss, "best acc", best_acc)
+        print(i, "loss:", totloss, "acc", total_acc)
         fitness = sorted(fitness, key=lambda tup: tup[0])
         chosen = selection(fitness, sel)
         children = [mutate(elem[1], mutation_rate) for elem in fitness[:elitism]]
@@ -99,13 +99,13 @@ def setup(init_pop):
         population = children
     total_acc = 0.0
     totloss = 0.0
-    for croms in population:
+    '''for croms in population:
         loss, acc = check_validation(croms, valid_data, np.tanh)
         total_acc += acc
         totloss += loss
     total_acc /= float(len(population))
     totloss /= float(len(population))
-    print("test avg loss:", totloss, "test avg acc", total_acc)
+    print("test avg loss:", totloss, "test avg acc", total_acc)'''
 
 
 def crossover(weight1, weight2):
