@@ -84,10 +84,10 @@ def setup(init_pop):
         sub_set = np.array(all_data)[validation_idx]
         for crom in population:
             loss, acc = check_validation(crom, sub_set, np.tanh)
-            crom['acc']=acc
+            crom['acc'] = acc
             fitness.append((loss, crom))
         fitness = sorted(fitness, key=lambda tup: tup[0])
-        best=fitness[0]
+        best = fitness[0]
         print(i, " best loss:", best[0], "best acc", best[1]['acc'])
         chosen = selection(fitness, sel)
         children = [elem[1] for elem in fitness[:elitism]]
@@ -106,7 +106,7 @@ def crossover(weight1, weight2):
     dict_res2 = {}
     prob = np.random.random()
     for key, val in weight1.items():
-        if key=='acc':
+        if key == 'acc':
             continue
         father = weight2[key]
         res1 = np.zeros((val.shape[0], val.shape[1]))
@@ -141,17 +141,16 @@ def selection(tuple_lst, desired_length):
 def mutate(weights, mut_rate):
     new_weight = {}
     for key, value in weights.items():
-        if key=='acc':
+        if key == 'acc':
             continue
-        value=np.array(value)
+        value = np.array(value)
         res1 = np.zeros((value.shape[0], value.shape[1]))
         for i in range(0, value.shape[0]):
-            for j in range(0, value.shape[1]):
-                if mut_rate > np.random.random():
-                    noise = np.random.normal(scale=0.0081)
-                    res1[i][j] += value[i][j] + noise
-                else:
-                    res1[i][j]= value[i][j]
+            if mut_rate > np.random.random():
+                noise = np.random.normal(scale=0.0081, size=value.shape[0])
+                res1[i] += value[i] + noise
+            else:
+                res1[i] = value[i]
         new_weight[key] = np.matrix(res1)
     return new_weight
 
