@@ -8,10 +8,7 @@ def softmax(x):
 
 
 def relu(x):
-    res = np.array(x)
-    for i in range(0, len(res)):
-        res[i] = max(res[i], 0.0)
-    return np.matrix(res)
+    return np.maximum(0,x)
 
 
 def forward(weights, x, y, activation_fun):
@@ -29,16 +26,18 @@ def forward(weights, x, y, activation_fun):
     return ret
 
 
-def check_validation(weights, validation_set, ac_fun):
+def check_validation(train_x,train_y,weights,ac_fun, minibatch_size=100):
     right_exmp = 0
     loss = 0.0
-    for x, y in validation_set:
-        val_func = forward(weights, x, y, ac_fun)
+    for i in range(0, train_x.shape[0],  minibatch_size):
+        X_train_mini = train_x[i:i + minibatch_size]
+        y_train_mini = train_y[i:i + minibatch_size]
+        val_func = forward(weights, X_train_mini , y_train_mini, ac_fun)
         loss += val_func['loss'].item()
-        if (np.argmax(val_func['h3'])) == int(y):
+        if (np.argmax(val_func['h3'])) == int(y_train_mini):
             right_exmp = right_exmp + 1
-    accuracy = right_exmp / float(len(validation_set)) * 100.0
-    loss /= len(validation_set)
+    accuracy = right_exmp / float(len(train_x)) * 100.0
+    loss/=len(train_x)
     return loss, accuracy
 
 
@@ -74,20 +73,21 @@ def setup(init_pop):
         population.append(create_crom(128))
     indices = list(range(len(all_data)))
     print(init_pop, "mr=0.01  scale=0.081", 12000, 100, "eli=20%")
-    for i in range(0, 15000):
+    for i in range(0, 20):
         fitness.clear()
         validation_idx = np.random.choice(indices, size=100, replace=False)
         sub_set = np.array(all_data)[validation_idx]
-        total_acc = 0.0
         totloss = 0.0
+        best_acc=0.0
+        best={}
         for crom in population:
             loss, acc = check_validation(crom, sub_set, np.tanh)
-            total_acc += acc
-            totloss += loss
+            if best_acc<acc:
+                best=crom
+                best_acc=acc
             fitness.append((loss, crom))
-        total_acc /= float(len(population))
         totloss /= float(len(population))
-        print(i, " avg loss:", totloss, "avg acc", total_acc)
+        print(i, " avg loss:", totloss, "best acc", best_acc)
         fitness = sorted(fitness, key=lambda tup: tup[0])
         chosen = selection(fitness, sel)
         children = [mutate(elem[1], mutation_rate) for elem in fitness[:elitism]]
@@ -154,4 +154,4 @@ def mutate(weights, mut_rate):
     return new_weight
 
 
-setup(100)
+setup(200)
