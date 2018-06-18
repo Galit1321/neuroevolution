@@ -66,7 +66,7 @@ def setup(init_pop):
     mndata.gz = True
     best = {}
     gen=2000
-    elitism = int(init_pop * .25)
+    elitism = int(init_pop * .2)
     sel = int(init_pop * .5)
     mutation_rate = 0.05
     train_x, train_y = mndata.load_training()
