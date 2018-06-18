@@ -40,7 +40,7 @@ def check_validation(weights, validation_set, ac_fun, test=False):
     accuracy = right_exmp / float(len(validation_set)) * 100.0
     loss /= len(validation_set)
     if test:
-        f = open("test.pred", "w")
+        f = open("test1.pred", "w")
         f.write(str_pred[:-1])
         f.close()
     return loss, accuracy
@@ -65,7 +65,8 @@ def setup(init_pop):
     mndata = MNIST('./mnist_data')
     mndata.gz = True
     best = {}
-    elitism = int(init_pop * .2)
+    gen=2000
+    elitism = 5
     sel = int(init_pop * .5)
     mutation_rate = 0.05
     train_x, train_y = mndata.load_training()
@@ -75,20 +76,21 @@ def setup(init_pop):
     all_data = list(zip(train_x, train_y))
     valid_data = list(zip(test_x, test_labels))
     fitness = []
+    print(mutation_rate,elitism,init_pop)
     for j in range(0, init_pop):
         population.append(create_crom(128))
     indices = list(range(len(all_data)))
-    for i in range(0, 2000):
+    for i in range(0, gen):
         fitness.clear()
         validation_idx = np.random.choice(indices, size=50, replace=False)
         sub_set = np.array(all_data)[validation_idx]
         for crom in population:
             loss, acc = check_validation(crom, sub_set, np.tanh)
-            crom['acc'] = acc
-            fitness.append((loss, crom))
+            fitness.append((loss, crom, acc))
         fitness = sorted(fitness, key=lambda tup: tup[0])
         best = fitness[0]
-        print(i, " best loss:", best[0], "best acc", best[1]['acc'])
+        if i % 10 == 0:
+            print(i, " best loss:", best[0], "best acc", best[2])
         chosen = selection(fitness, sel)
         children = [elem[1] for elem in fitness[:elitism]]
         for elem in chosen:
@@ -97,22 +99,20 @@ def setup(init_pop):
             mom, pop = elem
             children = children + crossover(mutate(mom, mutation_rate), mutate(pop, mutation_rate))
         population = children
-    loss, acc = check_validation(best, valid_data, np.tanh, True)
+    loss, acc = check_validation(best[1], valid_data, np.tanh, True)
     print("test loss:", loss, "test  acc", acc)
 
 
 def crossover(weight1, weight2):
     dict_res1 = {}
     dict_res2 = {}
-    prob = np.random.random()
+    prob = np.random.uniform(0,1)
     for key, val in weight1.items():
-        if key == 'acc':
-            continue
         father = weight2[key]
         res1 = np.zeros((val.shape[0], val.shape[1]))
         res2 = np.zeros((val.shape[0], val.shape[1]))
         for i in range(0, val.shape[0]):
-            if prob > np.random.random():
+            if prob > np.random.uniform(0,1):
                 res1[i] = val[i]
                 res2[i] = father[i]
             else:
@@ -141,14 +141,11 @@ def selection(tuple_lst, desired_length):
 def mutate(weights, mut_rate):
     new_weight = {}
     for key, value in weights.items():
-        if key == 'acc':
-            continue
-        value = np.array(value)
-        res1 = np.zeros((value.shape[0], value.shape[1]))
+        res1 = np.array(value)
         for i in range(0, value.shape[0]):
-            if mut_rate > np.random.random():
-                noise = np.random.normal(scale=0.0081, size=value.shape[0])
-                res1[i] += value[i] + noise
+            if mut_rate > np.random.uniform(0,1):
+                noise = np.random.normal(scale=0.081,size=value.shape[1])
+                res1[i] += noise
             else:
                 res1[i] = value[i]
         new_weight[key] = np.matrix(res1)
