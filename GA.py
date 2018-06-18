@@ -66,7 +66,7 @@ def setup(init_pop):
     mndata.gz = True
     best = {}
     gen=2000
-    elitism = 5
+    elitism = int(init_pop * .25)
     sel = int(init_pop * .5)
     mutation_rate = 0.05
     train_x, train_y = mndata.load_training()
@@ -106,21 +106,21 @@ def setup(init_pop):
 def crossover(weight1, weight2):
     dict_res1 = {}
     dict_res2 = {}
-    prob = np.random.uniform(0,1)
+    prob = 0.5#np.random.uniform(0,1)
     for key, val in weight1.items():
         father = weight2[key]
         res1 = np.zeros((val.shape[0], val.shape[1]))
-        res2 = np.zeros((val.shape[0], val.shape[1]))
+        #res2 = np.zeros((val.shape[0], val.shape[1]))
         for i in range(0, val.shape[0]):
             if prob > np.random.uniform(0,1):
                 res1[i] = val[i]
-                res2[i] = father[i]
+         #       res2[i] = father[i]
             else:
-                res2[i] = val[i]
+          #      res2[i] = val[i]
                 res1[i] = father[i]
         dict_res1[key] = res1
-        dict_res2[key] = res2
-    return [dict_res1, dict_res2]
+        #dict_res2[key] = res2
+    return [dict_res1]
 
 
 def selection(tuple_lst, desired_length):

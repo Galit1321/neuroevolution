@@ -125,6 +125,6 @@ for i in range(0, epochs):
 test_x = test_x
 f = open("test.pred", "w")
 for x in test_x:
-    test_fprop = fprop(x, 0, weights, sigmoid)
+    test_fprop = fprop(x, 0, weights, np.tanh)
     f.write(str(np.argmax(test_fprop['h3'])) + '\n')
 f.close()
