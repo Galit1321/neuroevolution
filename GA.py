@@ -11,6 +11,7 @@ def relu(x):
     return np.maximum(0, x)
 
 
+
 def forward(weights, x, y, activation_fun):
     # Follows procedure given in notes
     w1, b1, w2, b2, w3, b3 = [weights[key] for key in ('W1', 'b1', 'W2', 'b2', 'W3', 'b3')]
@@ -26,37 +27,30 @@ def forward(weights, x, y, activation_fun):
     return ret
 
 
-def check_validation(weights, validation_set, ac_fun, test=False):
-    right_exmp = 0.0
+def check_validation(weights, validation_set, ac_fun):
+    right_exmp = 0
     loss = 0.0
-    str_pred = ""
     for x, y in validation_set:
         val_func = forward(weights, x, y, ac_fun)
         loss += val_func['loss'].item()
-        pred = np.argmax(val_func['h3'])
-        str_pred += str(pred) + '\n'
-        if pred == int(y):
-            right_exmp = right_exmp + 1.0
+        if (np.argmax(val_func['h3'])) == int(y):
+            right_exmp = right_exmp + 1
     accuracy = right_exmp / float(len(validation_set)) * 100.0
     loss /= len(validation_set)
-    if test:
-        f = open("test1.pred", "w")
-        f.write(str_pred[:-1])
-        f.close()
     return loss, accuracy
 
 
 def create_crom(hidden_layer, input_layer=784, output_layer=10):
     glorot_init = np.sqrt(6 / (1.0 * (hidden_layer + input_layer)))
-    w1 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (hidden_layer, input_layer)))
+    W1 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (hidden_layer, input_layer)))
     b1 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, hidden_layer)))
     glorot_init = np.sqrt(6 / (1.0 * (64 + 128)))
-    w2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (64, 128)))
+    W2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (64, 128)))
     b2 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, 64)))
     glorot_init = np.sqrt(6 / (1.0 * (64 + 10)))
-    w3 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (output_layer, 64)))
+    W3 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (output_layer, 64)))
     b3 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, output_layer)))
-    weights = {'W1': w1, 'b1': b1, 'W2': w2, 'b2': b2, 'b3': b3, 'W3': w3}
+    weights = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2, 'b3': b3, 'W3': W3}
     return weights
 
 
@@ -65,8 +59,8 @@ def setup(init_pop):
     mndata = MNIST('./mnist_data')
     mndata.gz = True
     best = {}
-    gen=2000
-    elitism = int(init_pop * .2)
+    gen=10000
+    elitism = 5#int(init_pop * .2)
     sel = int(init_pop * .5)
     mutation_rate = 0.05
     train_x, train_y = mndata.load_training()
@@ -85,7 +79,7 @@ def setup(init_pop):
         validation_idx = np.random.choice(indices, size=50, replace=False)
         sub_set = np.array(all_data)[validation_idx]
         for crom in population:
-            loss, acc = check_validation(crom, sub_set, np.tanh)
+            loss, acc = check_validation(crom, sub_set,relu)
             fitness.append((loss, crom, acc))
         fitness = sorted(fitness, key=lambda tup: tup[0])
         best = fitness[0]
@@ -99,28 +93,28 @@ def setup(init_pop):
             mom, pop = elem
             children = children + crossover(mutate(mom, mutation_rate), mutate(pop, mutation_rate))
         population = children
-    loss, acc = check_validation(best[1], valid_data, np.tanh, True)
+    loss, acc = check_validation(best[1], valid_data, relu)
     print("test loss:", loss, "test  acc", acc)
 
 
 def crossover(weight1, weight2):
     dict_res1 = {}
     dict_res2 = {}
-    prob = 0.5#np.random.uniform(0,1)
+    prob = np.random.random()
     for key, val in weight1.items():
         father = weight2[key]
         res1 = np.zeros((val.shape[0], val.shape[1]))
-        #res2 = np.zeros((val.shape[0], val.shape[1]))
+        res2 = np.zeros((val.shape[0], val.shape[1]))
         for i in range(0, val.shape[0]):
-            if prob > np.random.uniform(0,1):
+            if prob > np.random.random():
                 res1[i] = val[i]
-         #       res2[i] = father[i]
+                res2[i] = father[i]
             else:
-          #      res2[i] = val[i]
+                res2[i] = val[i]
                 res1[i] = father[i]
         dict_res1[key] = res1
-        #dict_res2[key] = res2
-    return [dict_res1]
+        dict_res2[key] = res2
+    return [dict_res1, dict_res2]
 
 
 def selection(tuple_lst, desired_length):
@@ -143,8 +137,8 @@ def mutate(weights, mut_rate):
     for key, value in weights.items():
         res1 = np.array(value)
         for i in range(0, value.shape[0]):
-            if mut_rate > np.random.uniform(0,1):
-                noise = np.random.normal(scale=0.081,size=value.shape[1])
+            if mut_rate > np.random.random():
+                noise = np.random.normal(scale=0.081, size=value.shape[1])
                 res1[i] += noise
             else:
                 res1[i] = value[i]
