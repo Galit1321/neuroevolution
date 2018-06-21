@@ -29,8 +29,8 @@ class Network():
         b2 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.hidden_layer2)))
         b3 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, self.output_layer)))
         self.weights = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2, 'b3': b3, 'W3': W3}
-        self.af1 = np.random.choice([relu, sigmoid, np.tanh])
-        self.af2 = np.random.choice([relu, sigmoid, np.tanh])
+        self.af1 = np.random.choice([relu, np.tanh])
+        self.af2 = np.random.choice([relu, np.tanh])
 
     def forward(self, x, y):
         # Follows procedure given in notes
@@ -56,7 +56,6 @@ class Network():
                 right_exmp = right_exmp + 1
         self.acc = right_exmp / float(len(dataset)) * 100.0
         self.loss =loss/ float(len(dataset))
-        return loss
 
     def mutate(self,mut_rate):
         new_weight = {}
@@ -64,7 +63,7 @@ class Network():
             res1 = np.array(value)
             for i in range(0, value.shape[0]):
                 if mut_rate > np.random.random():
-                    noise = np.random.normal(scale=0.081, size=value.shape[1])
+                    noise = np.random.normal(scale=0.0081, size=value.shape[1])
                     res1[i] += noise
                 else:
                     res1[i] = value[i]

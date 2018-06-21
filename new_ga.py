@@ -2,11 +2,10 @@ from mnist import MNIST
 from network import Network
 import numpy as np
 
-mutate_chance = 0.02
+mutate_chance = 0.05
 
 
 def breed(mother, father):
-    children = []
     dict_res1 = {}
     network = Network()
     weight1 = mother.weights
@@ -14,18 +13,18 @@ def breed(mother, father):
     for key, val in weight1.items():
         papa = weight2[key]
         res1 = np.zeros((val.shape[0], val.shape[1]))
+        pro=np.random.rand(1)
         for i in range(0, val.shape[0]):
-            if 0.5 > np.random.random():
+            if pro > np.random.random():
                 res1[i] = val[i]
             else:
                 res1[i] = papa[i]
         dict_res1[key] = res1
     network.weights = dict_res1
     # Randomly mutate some of the children.
-    if mutate_chance > np.random.random():
-        network.mutate(mutate_chance)
-    children.append(network)
-    return children
+    #if mutate_chance > np.random.random():
+    network.mutate(mutate_chance)
+    return network
 
 
 def train_networks(index, networks, dataset):
@@ -37,14 +36,14 @@ def train_networks(index, networks, dataset):
 
 def evolve(graded):
     # Get the number we want to keep for the next gen.
-    retain_length = int(len(graded) * 0.4)
+    retain_length = int(len(graded) * 0.2)
 
     # The parents are every network we want to keep.
     parents = graded[:retain_length]
 
     # For those we aren't keeping, randomly keep some anyway.
     for individual in graded[retain_length:]:
-        if 0.1 > np.random.random():
+        if 0.008 > np.random.random():
             parents.append(individual)
 
     # Now find out how many spots we have left to fill.
@@ -64,13 +63,8 @@ def evolve(graded):
             male = parents[male]
             female = parents[female]
             # Breed them.
-            babies = breed(male, female)
-
-            # Add the children one at a time.
-            for baby in babies:
-                # Don't grow larger than desired length.
-                if len(children) < desired_length:
-                    children.append(baby)
+            baby = breed(male, female)
+            children.append(baby)
 
     parents.extend(children)
 
@@ -99,7 +93,7 @@ def generate(generations, population):
     # Evolve the generation.
     best = Network()
     for i in range(generations):
-        print("***Doing generation  {} of {}***".format(i + 1, generations))
+        #print("***Doing generation  {} of {}***".format(i + 1, generations))
         train_networks(indices, networks, dataset)
         graded = [(network.loss, network) for network in networks]
         # Sort on the scores.
@@ -107,20 +101,18 @@ def generate(generations, population):
         best = graded[0]
         if i % 10 == 0:
             print(i, " best loss:", best.loss, "best acc", best.acc)
-        print('-' * 80)
+            #print('-' * 80)
         # Evolve, except on the last iteration.
         if i != generations - 1:
             # Do the evolution.
             networks = evolve(graded)
 
-    # Sort our final population.
-    networks = sorted(networks, key=lambda x: x.loss)
     best.train(valid_data)
     print("test loss:", best.loss, "test  acc", best.acc)
 
 
 def main():
-    generations = 7000  # Number of times to evole the population.
+    generations = 10000  # Number of times to evole the population.
     population = 100  # Number of networks in each generation.
     print("***Evolving {} generations with population {}***".format(generations, population))
     generate(generations, population)

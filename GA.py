@@ -30,14 +30,31 @@ def forward(weights, x, y, activation_fun):
 def check_validation(weights, validation_set, ac_fun):
     right_exmp = 0
     loss = 0.0
+    res=""
     for x, y in validation_set:
         val_func = forward(weights, x, y, ac_fun)
         loss += val_func['loss'].item()
+        res+=str(np.argmax(val_func['h3']))
         if (np.argmax(val_func['h3'])) == int(y):
             right_exmp = right_exmp + 1
     accuracy = right_exmp / float(len(validation_set)) * 100.0
     loss /= len(validation_set)
     return loss, accuracy
+
+
+def check_test(weights, validation_set, ac_fun):
+    right_exmp = 0
+    loss = 0.0
+    res=""
+    for x, y in validation_set:
+        val_func = forward(weights, x, y, ac_fun)
+        loss += val_func['loss'].item()
+        res+=str(np.argmax(val_func['h3']))+'\n'
+        if (np.argmax(val_func['h3'])) == int(y):
+            right_exmp = right_exmp + 1
+    accuracy = right_exmp / float(len(validation_set)) * 100.0
+    loss /= len(validation_set)
+    return loss, accuracy,res
 
 
 def create_crom(hidden_layer, input_layer=784, output_layer=10):
@@ -94,7 +111,11 @@ def setup(init_pop):
             mom, pop = elem
             children = children + crossover(mutate(mom, mutation_rate), mutate(pop, mutation_rate))
         population = children
-    loss, acc = check_validation(best[1], valid_data, np.tanh)
+    loss, acc, pred= check_test(best[1], valid_data, np.tanh)
+    print(best[1])
+    f = open("test.pred", "w")
+    f.write(pred[:-1])
+    f.close()
     print("test loss:", loss, "test  acc", acc)
 
 
