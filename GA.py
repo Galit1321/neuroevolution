@@ -56,11 +56,12 @@ def create_crom(hidden_layer, input_layer=784, output_layer=10):
 
 def setup(init_pop):
     population = []
+    print("no add par")
     mndata = MNIST('./mnist_data')
     mndata.gz = True
     best = {}
-    gen=10000
-    elitism = 5#int(init_pop * .2)
+    gen=5000
+    elitism = int(init_pop * .2)
     sel = int(init_pop * .5)
     mutation_rate = 0.05
     train_x, train_y = mndata.load_training()
@@ -76,10 +77,10 @@ def setup(init_pop):
     indices = list(range(len(all_data)))
     for i in range(0, gen):
         fitness.clear()
-        validation_idx = np.random.choice(indices, size=50, replace=False)
+        validation_idx = np.random.choice(indices, size=250, replace=False)
         sub_set = np.array(all_data)[validation_idx]
         for crom in population:
-            loss, acc = check_validation(crom, sub_set,relu)
+            loss, acc = check_validation(crom, sub_set, np.tanh)
             fitness.append((loss, crom, acc))
         fitness = sorted(fitness, key=lambda tup: tup[0])
         best = fitness[0]
@@ -93,7 +94,7 @@ def setup(init_pop):
             mom, pop = elem
             children = children + crossover(mutate(mom, mutation_rate), mutate(pop, mutation_rate))
         population = children
-    loss, acc = check_validation(best[1], valid_data, relu)
+    loss, acc = check_validation(best[1], valid_data, np.tanh)
     print("test loss:", loss, "test  acc", acc)
 
 
@@ -138,7 +139,7 @@ def mutate(weights, mut_rate):
         res1 = np.array(value)
         for i in range(0, value.shape[0]):
             if mut_rate > np.random.random():
-                noise = np.random.normal(scale=0.081, size=value.shape[1])
+                noise = np.random.normal(scale=0.0081, size=value.shape[1])
                 res1[i] += noise
             else:
                 res1[i] = value[i]
