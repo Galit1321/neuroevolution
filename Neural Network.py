@@ -7,19 +7,11 @@ sigmoidPrime = lambda z: np.multiply(np.array(sigmoid(np.array(z))), np.array((1
 
 
 def relu(x):
-    res = np.array(x)
-    for i in range(0, len(res)):
-        res[i] = max(res[i], 0.0)
-    return np.matrix(res)
+    return np.maximum(0, x)
 
 
 def reluDif(z_1):
-    res = np.array(z_1)
-    for i in range(0, len(z_1)):
-        if res[i] < 0.0:
-            res[i] = 0.0
-        else:
-            res[i] = 1.0
+    res = np.heaviside(z_1, 0)
     return np.matrix(res)
 
 
@@ -35,7 +27,7 @@ def checkValidation(weights, validation_set, ac_fun):
     right_exmp = 0
     for x, y in validation_set:
         val_func = fprop(x, y, weights, ac_fun)
-        if ((np.argmax(val_func['h3'])) == int(y)):
+        if (np.argmax(val_func['h3'])) == int(y):
             right_exmp = right_exmp + 1
     return right_exmp
 
@@ -58,7 +50,7 @@ def fprop(x, y, params, activation_fun):
     return ret
 
 
-def bprop(fprop_cache, diFunc,weights):
+def bprop(fprop_cache, diFunc, weights):
     w2 = weights['W2']
     w3 = weights['W3']
     x = fprop_cache['x']
@@ -81,15 +73,16 @@ def bprop(fprop_cache, diFunc,weights):
     return {'b1': db1, 'W1': dW1, 'b2': db2, 'W2': dW2, 'b3': db3, 'W3': dW3}
 
 
-hidden_layer = 120
+hidden_layer = 128
+hidden_layer2 = 64
 input_size = 28 * 28
 output_layer = 10
-lr = 0.01
-epochs = 15
+lr = 0.005
+epochs =50
 mndata = MNIST('./mnist_data')
 mndata.gz = True
 train_x, train_y = mndata.load_training()
-train_x=np.array(train_x)/255.0
+train_x = np.array(train_x) / 255.0
 test_x, test_labels = mndata.load_testing()
 pair_data = list(zip(train_x, train_y))
 np.random.shuffle(pair_data)
@@ -97,20 +90,21 @@ training_size = int(len(pair_data) * 0.8)
 training_set = pair_data[:training_size]
 validation_set = pair_data[training_size:]
 glorot_init = np.sqrt(6 / (1.0 * (hidden_layer + input_size)))
+glorot_init2 = np.sqrt(6 / (1.0 * (hidden_layer + hidden_layer2)))
+glorot_init3 = np.sqrt(6 / (1.0 * (hidden_layer + 10)))
 W1 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (hidden_layer, input_size)))
-W2 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (hidden_layer, hidden_layer)))
-W3 = np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, (output_layer, hidden_layer)))
+W2 = np.matrix(np.random.uniform(-1 * glorot_init2, glorot_init2, (hidden_layer2, hidden_layer)))
+W3 = np.matrix(np.random.uniform(-1 * glorot_init3, glorot_init3, (output_layer, hidden_layer2)))
 b1 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, hidden_layer)))
-b2 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, hidden_layer)))
-b3 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init, glorot_init, output_layer)))
+b2 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init2, glorot_init2, hidden_layer2)))
+b3 = np.transpose(np.matrix(np.random.uniform(-1 * glorot_init3, glorot_init3, output_layer)))
 weights = {'W1': W1, 'b1': b1, 'W2': W2, 'b2': b2, 'b3': b3, 'W3': W3}
-print(lr, epochs, hidden_layer)
+print(lr, epochs, hidden_layer, hidden_layer2)
 for i in range(0, epochs):
     np.random.shuffle(training_set)
-    print("before train")
     for x, y in training_set:
-        functions = fprop(x, y, weights, np.tanh)  # forward
-        bp_gradients = bprop(functions, difftanh,weights)  # backpropagation
+        functions = fprop(x, y, weights,relu)  # forward
+        bp_gradients = bprop(functions, reluDif, weights)  # backpropagation
         # update weights
         weights = {'W1': (weights['W1'] - lr * bp_gradients['W1']),
                    'b1': (weights['b1'] - lr * bp_gradients['b1']),
@@ -118,13 +112,10 @@ for i in range(0, epochs):
                    'b2': (weights['b2'] - lr * bp_gradients['b2']),
                    'W3': (weights['W3'] - lr * bp_gradients['W3']),
                    'b3': (weights['b3'] - lr * bp_gradients['b3'])}
-    print("after train")
-    right = checkValidation(weights, validation_set, np.tanh)
+    right = checkValidation(weights, validation_set,relu)
     print(i, "success percentage:" + str((right / float(len(validation_set)) * 100)) + '%')
 
-test_x = test_x
-f = open("test.pred", "w")
-for x in test_x:
-    test_fprop = fprop(x, 0, weights, np.tanh)
-    f.write(str(np.argmax(test_fprop['h3'])) + '\n')
-f.close()
+test_x = np.array(test_x) / 255.0
+test_data = list(zip(test_x, test_labels))
+right = checkValidation(weights, test_data, relu)
+print("test success percentage:" + str((right / float(len(test_data)) * 100)) + '%')

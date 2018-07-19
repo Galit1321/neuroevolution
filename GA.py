@@ -1,5 +1,6 @@
 import numpy as np
 from mnist import MNIST
+import time
 
 
 def softmax(x):
@@ -9,7 +10,6 @@ def softmax(x):
 
 def relu(x):
     return np.maximum(0, x)
-
 
 
 def forward(weights, x, y, activation_fun):
@@ -30,11 +30,11 @@ def forward(weights, x, y, activation_fun):
 def check_validation(weights, validation_set, ac_fun):
     right_exmp = 0
     loss = 0.0
-    res=""
+    res = ""
     for x, y in validation_set:
         val_func = forward(weights, x, y, ac_fun)
         loss += val_func['loss'].item()
-        res+=str(np.argmax(val_func['h3']))
+        res += str(np.argmax(val_func['h3']))
         if (np.argmax(val_func['h3'])) == int(y):
             right_exmp = right_exmp + 1
     accuracy = right_exmp / float(len(validation_set)) * 100.0
@@ -45,16 +45,16 @@ def check_validation(weights, validation_set, ac_fun):
 def check_test(weights, validation_set, ac_fun):
     right_exmp = 0
     loss = 0.0
-    res=""
+    res = ""
     for x, y in validation_set:
         val_func = forward(weights, x, y, ac_fun)
         loss += val_func['loss'].item()
-        res+=str(np.argmax(val_func['h3']))+'\n'
+        res += str(np.argmax(val_func['h3'])) + '\n'
         if (np.argmax(val_func['h3'])) == int(y):
             right_exmp = right_exmp + 1
     accuracy = right_exmp / float(len(validation_set)) * 100.0
     loss /= len(validation_set)
-    return loss, accuracy,res
+    return loss, accuracy, res
 
 
 def create_crom(hidden_layer, input_layer=784, output_layer=10):
@@ -73,13 +73,12 @@ def create_crom(hidden_layer, input_layer=784, output_layer=10):
 
 def setup(init_pop):
     population = []
-    print("no add par")
     mndata = MNIST('./mnist_data')
     mndata.gz = True
     best = {}
-    gen=5000
-    elitism = int(init_pop * .2)
-    sel = int(init_pop * .5)
+    gen = 1
+    elitism = int(init_pop * .1)
+    sel = int(init_pop * .25)
     mutation_rate = 0.05
     train_x, train_y = mndata.load_training()
     train_x = np.array(train_x) / 255.0
@@ -88,32 +87,46 @@ def setup(init_pop):
     all_data = list(zip(train_x, train_y))
     valid_data = list(zip(test_x, test_labels))
     fitness = []
-    print(mutation_rate,elitism,init_pop)
+    print(mutation_rate, elitism, init_pop)
+    print(init_pop,gen ,elitism ,sel,mutation_rate)
     for j in range(0, init_pop):
         population.append(create_crom(128))
     indices = list(range(len(all_data)))
+    size_sample = 50
     for i in range(0, gen):
         fitness.clear()
-        validation_idx = np.random.choice(indices, size=250, replace=False)
+        validation_idx = np.random.choice(indices, size=size_sample, replace=False)
         sub_set = np.array(all_data)[validation_idx]
         for crom in population:
             loss, acc = check_validation(crom, sub_set, np.tanh)
             fitness.append((loss, crom, acc))
         fitness = sorted(fitness, key=lambda tup: tup[0])
         best = fitness[0]
-        if i % 10 == 0:
+        if i % 100 == 0:
             print(i, " best loss:", best[0], "best acc", best[2])
+            if i % 1000 == 0:
+                size_sample = int(2 * size_sample)
         chosen = selection(fitness, sel)
         children = [elem[1] for elem in fitness[:elitism]]
         for elem in chosen:
             if len(children) == init_pop:
                 break
             mom, pop = elem
-            children = children + crossover(mutate(mom, mutation_rate), mutate(pop, mutation_rate))
+            child1,child2=crossover(mom, pop)
+            children = children+[mutate(child1,mutation_rate),mutate(child2,mutation_rate)]
         population = children
-    loss, acc, pred= check_test(best[1], valid_data, np.tanh)
-    print(best[1])
-    f = open("test.pred", "w")
+    best = fitness[0]
+    print(gen," best loss:", best[0], "best acc", best[2])
+    loss, acc, pred = check_test(best[1], valid_data, np.tanh)
+    with open('weights_save'+ '.pkl', 'wb') as f:
+        np.pickle.dump(best[1], f, np.pickle.HIGHEST_PROTOCOL)
+    with open("weight.txt", 'w') as f:
+        for key, value in best[1].items():
+            f.write(key)
+            for elem in value:
+                f.write(str(elem)+',\n')
+            #f.write('%s:%s\n' % (key, val[-1]))
+    f = open("test_dub.pred", "w")
     f.write(pred[:-1])
     f.close()
     print("test loss:", loss, "test  acc", acc)
@@ -168,4 +181,8 @@ def mutate(weights, mut_rate):
     return new_weight
 
 
-setup(100)
+localtime = time.asctime(time.localtime(time.time()))
+print("Local current time :", localtime)
+setup(50)
+localtime = time.asctime(time.localtime(time.time()))
+print("Local current time :", localtime)
