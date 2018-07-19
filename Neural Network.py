@@ -25,11 +25,13 @@ def softmax(x):
 
 def checkValidation(weights, validation_set, ac_fun):
     right_exmp = 0
+    loss=0.0
     for x, y in validation_set:
         val_func = fprop(x, y, weights, ac_fun)
+        loss+=val_func['loss']
         if (np.argmax(val_func['h3'])) == int(y):
             right_exmp = right_exmp + 1
-    return right_exmp
+    return right_exmp,(loss/float(len(validation_set)))
 
 
 def fprop(x, y, params, activation_fun):
@@ -78,7 +80,7 @@ hidden_layer2 = 64
 input_size = 28 * 28
 output_layer = 10
 lr = 0.005
-epochs =50
+epochs =20
 mndata = MNIST('./mnist_data')
 mndata.gz = True
 train_x, train_y = mndata.load_training()
@@ -112,10 +114,11 @@ for i in range(0, epochs):
                    'b2': (weights['b2'] - lr * bp_gradients['b2']),
                    'W3': (weights['W3'] - lr * bp_gradients['W3']),
                    'b3': (weights['b3'] - lr * bp_gradients['b3'])}
-    right = checkValidation(weights, validation_set,relu)
-    print(i, "success percentage:" + str((right / float(len(validation_set)) * 100)) + '%')
+    right,loss = checkValidation(weights, validation_set,relu)
+    print(i, "success percentage:" + str((right / float(len(validation_set)) * 100)) + '%',"loss",loss)
+
 
 test_x = np.array(test_x) / 255.0
 test_data = list(zip(test_x, test_labels))
-right = checkValidation(weights, test_data, relu)
-print("test success percentage:" + str((right / float(len(test_data)) * 100)) + '%')
+right,l = checkValidation(weights, test_data, relu)
+print("test success percentage:" + str((right / float(len(test_data)) * 100)) + '%',"loss",l)

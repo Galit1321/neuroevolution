@@ -1,7 +1,7 @@
 import numpy as np
 from mnist import MNIST
 import time
-
+import pickle
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
@@ -75,8 +75,7 @@ def setup(init_pop):
     population = []
     mndata = MNIST('./mnist_data')
     mndata.gz = True
-    best = {}
-    gen = 1
+    gen = 25000
     elitism = int(init_pop * .1)
     sel = int(init_pop * .25)
     mutation_rate = 0.05
@@ -105,7 +104,9 @@ def setup(init_pop):
         if i % 100 == 0:
             print(i, " best loss:", best[0], "best acc", best[2])
             if i % 1000 == 0:
-                size_sample = int(2 * size_sample)
+                with open('weights/weights_save' +str(i)+ '.pkl', 'wb') as f:
+                    pickle.dump(best[1], f, pickle.HIGHEST_PROTOCOL)
+                size_sample = int(1.5 * size_sample)
         chosen = selection(fitness, sel)
         children = [elem[1] for elem in fitness[:elitism]]
         for elem in chosen:
@@ -118,8 +119,8 @@ def setup(init_pop):
     best = fitness[0]
     print(gen," best loss:", best[0], "best acc", best[2])
     loss, acc, pred = check_test(best[1], valid_data, np.tanh)
-    with open('weights_save'+ '.pkl', 'wb') as f:
-        np.pickle.dump(best[1], f, np.pickle.HIGHEST_PROTOCOL)
+    with open('weights/weights_save'+ '.pkl', 'wb') as f:
+        pickle.dump(best[1], f, pickle.HIGHEST_PROTOCOL)
     with open("weight.txt", 'w') as f:
         for key, value in best[1].items():
             f.write(key)
