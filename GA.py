@@ -118,7 +118,7 @@ def setup(init_pop):
         population = children
     best = fitness[0]
     print(gen," best loss:", best[0], "best acc", best[2])
-    loss, acc, pred =(best[1], valid_data, np.tanh)
+    loss, acc, pred =check_test(best[1], valid_data, np.tanh)
     with open('weights_save'+ '.pkl', 'wb') as f:
         pickle.dump(best[1], f, pickle.HIGHEST_PROTOCOL)
     with open("weight.txt", 'w') as f:
