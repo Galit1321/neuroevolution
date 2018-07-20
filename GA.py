@@ -76,7 +76,7 @@ def setup(init_pop):
     mndata = MNIST('./mnist_data')
     mndata.gz = True
     gen = 25000
-    elitism = int(init_pop * .05)
+    elitism = int(init_pop * .1)
     sel = int(init_pop * .25)
     mutation_rate = 0.05
     train_x, train_y = mndata.load_training()
