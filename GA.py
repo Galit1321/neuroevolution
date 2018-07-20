@@ -75,7 +75,7 @@ def setup(init_pop):
     population = []
     mndata = MNIST('./mnist_data')
     mndata.gz = True
-    gen = 25000
+    gen = 12000
     elitism = int(init_pop * .1)
     sel = int(init_pop * .25)
     mutation_rate = 0.05
@@ -86,27 +86,26 @@ def setup(init_pop):
     all_data = list(zip(train_x, train_y))
     valid_data = list(zip(test_x, test_labels))
     fitness = []
-    print(mutation_rate, elitism, init_pop)
     print(init_pop,gen ,elitism ,sel,mutation_rate)
     for j in range(0, init_pop):
         population.append(create_crom(128))
     indices = list(range(len(all_data)))
-    size_sample = 50
+    size_sample = 45
     for i in range(0, gen):
         fitness.clear()
         validation_idx = np.random.choice(indices, size=size_sample, replace=False)
         sub_set = np.array(all_data)[validation_idx]
         for crom in population:
-            loss, acc = check_validation(crom, sub_set,np.tanh)
+            loss, acc = check_validation(crom, sub_set,relu)
             fitness.append((loss, crom, acc))
         fitness = sorted(fitness, key=lambda tup: tup[0])
         best = fitness[0]
         if i % 100 == 0:
             print(i, " best loss:", best[0], "best acc", best[2])
             if i % 1000 == 0:
-                with open('weights_save' +str(i)+ '.pkl', 'wb') as f:
+                with open('weights_relu/weights_save' +str(i)+ '.pkl', 'wb') as f:
                     pickle.dump(best[1], f, pickle.HIGHEST_PROTOCOL)
-                size_sample = int(1.2 * size_sample)
+                size_sample = int(1.5 * size_sample)
         chosen = selection(fitness, sel)
         children = [elem[1] for elem in fitness[:elitism]]
         for elem in chosen:
@@ -118,16 +117,16 @@ def setup(init_pop):
         population = children
     best = fitness[0]
     print(gen," best loss:", best[0], "best acc", best[2])
-    loss, acc, pred =check_test(best[1], valid_data, np.tanh)
-    with open('weights_save'+ '.pkl', 'wb') as f:
+    loss, acc, pred =check_test(best[1], valid_data, relu)
+    with open('weights_relu/weights_save'+ '.pkl', 'wb') as f:
         pickle.dump(best[1], f, pickle.HIGHEST_PROTOCOL)
-    with open("weight.txt", 'w') as f:
+    with open("weights_relu/weight.txt", 'w') as f:
         for key, value in best[1].items():
             f.write(key)
             for elem in value:
                 f.write(str(elem)+',\n')
             #f.write('%s:%s\n' % (key, val[-1]))
-    f = open("test_tanh.pred", "w")
+    f = open("test_relu.pred", "w")
     f.write(pred[:-1])
     f.close()
     print("test loss:", loss, "test  acc", acc)
@@ -184,7 +183,7 @@ def mutate(weights, mut_rate):
 
 localtime = time.asctime(time.localtime(time.time()))
 print("Local current time :", localtime)
-print("tanh")
+print("relu")
 setup(50)
 localtime = time.asctime(time.localtime(time.time()))
 print("Local current time :", localtime)
