@@ -81,7 +81,7 @@ def setup(init_pop):
         best= pickle.load(f)
     valid_data = list(zip(test_x, test_labels))
     #print(gen," best loss:", best[0], "best acc", best[2])
-    loss, acc, pred =check_test(best, valid_data, relu)
+    loss, acc, pred =check_test(best, valid_data, np.tanh)
     with open("weights/weight.txt", 'w') as f:
         for key, value in best.items():
             f.write(key)
