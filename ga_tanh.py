@@ -76,9 +76,9 @@ def setup(init_pop):
     population = []
     mndata = MNIST('./mnist_data')
     mndata.gz = True
-    gen =  14000
+    gen =  10000
     mutation_rate = 0  # dynamic
-    elitism = int(init_pop * .08)
+    elitism = int(init_pop * .1)
     sel = int(init_pop * .33)
     train_x, train_y = mndata.load_training()
     train_x = np.array(train_x) / 255.0
@@ -106,7 +106,7 @@ def setup(init_pop):
                 with open('weights_tanh/weights_save' + str(i) + '.pkl', 'wb') as f:
                     pickle.dump(best[1], f, pickle.HIGHEST_PROTOCOL)
                 size_sample = int(1.5 * size_sample) % 6000
-                mutation_rate = (0.05 * (1.0 - (float(i + 1) / float(gen))))
+                mutation_rate = (0.5 * (float(i + 1) / float(gen)))
                 print(mutation_rate)
         chosen = selection(fitness, sel)
         children = [elem[1] for elem in fitness[:elitism]]
